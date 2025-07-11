@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🧠 Deploy Your AI Site</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #0e0e0e;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 2rem;
+    }
+    input, textarea, button {
+      margin: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      width: 80%;
+      max-width: 500px;
+    }
+    button {
+      background-color: #00cc88;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #00e6a8;
+    }
+    .output {
+      margin-top: 2rem;
+      font-size: 1rem;
+      color: #66ffcc;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🚀 Deploy Your AI Website to GitHub Pages</h1>
+
+  <input id="token" type="password" placeholder="🔑 GitHub Token (repo scope)">
+  <input id="repo" placeholder="📦 Repository Name (e.g. steveai)">
+  <textarea id="html" rows="10" placeholder="🧠 Paste your index.html code here"></textarea>
+  <button onclick="deploy()">⚙️ Deploy</button>
+
+  <div class="output" id="output"></div>
+
+  <script>
+    async function deploy() {
+      const token = document.getElementById('token').value.trim();
+      const repo = document.getElementById('repo').value.trim();
+      const html = document.getElementById('html').value.trim();
+      const output = document.getElementById('output');
+
+      if (!token || !repo || !html) {
+        output.innerText = "❌ Please fill all fields!";
+        return;
+      }
+
+      output.innerText = "🔄 Creating repository...";
+
+      const createRepo = await fetch("https://api.github.com/user/repos", {
+        method: "POST",
+        headers: {
+          "Authorization": `token ${token}`,
+          "Accept": "application/vnd.github+json"
+        },
+        body: JSON.stringify({
+          name: repo,
+          description: "AI site deployed via webapp",
+          auto_init: true,
+          private: false
+        })
+      });
+
+      if (!createRepo.ok) {
+        output.innerText = "❌ Failed to create repo: " + (await createRepo.text());
+        return;
+      }
+
+      output.innerText = "📤 Uploading index.html...";
+
+      const htmlEncoded = btoa(unescape(encodeURIComponent(html)));
+
+      const upload = await fetch(`https://api.github.com/repos/${(await createRepo.json()).owner.login}/${repo}/contents/index.html`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `token ${token}`,
+          "Accept": "application/vnd.github+json"
+        },
+        body: JSON.stringify({
+          message: "Add index.html",
+          content: htmlEncoded
+        })
+      });
+
+      if (!upload.ok) {
+        output.innerText = "❌ Failed to upload index.html: " + (await upload.text());
+        return;
+      }
+
+      output.innerText = "🌐 Enabling GitHub Pages...";
+
+      const enablePages = await fetch(`https://api.github.com/repos/${(await upload.json()).content.repository.full_name}/pages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `token ${token}`,
+          "Accept": "application/vnd.github+json"
+        },
+        body: JSON.stringify({
+          source: { branch: "main", path: "/" }
+        })
+      });
+
+      if (!enablePages.ok) {
+        output.innerText = "⚠️ Repo created but GitHub Pages setup failed.\nTry enabling it manually in repo settings.";
+        return;
+      }
+
+      const username = (await fetch("https://api.github.com/user", {
+        headers: { "Authorization": `token ${token}` }
+      }).then(r => r.json())).login;
+
+      const url = `https://${username}.github.io/${repo}/`;
+      output.innerHTML = `✅ Success! <br>🌍 Your site: <a href="${url}" target="_blank">${url}</a>`;
+    }
+  </script>
+
+</body>
+</html>
+  
