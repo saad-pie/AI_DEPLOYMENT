@@ -29,6 +29,7 @@
     .output {
       margin-top: 2rem;
       color: #33ffcc;
+      white-space: pre-wrap;
     }
   </style>
 </head>
@@ -53,9 +54,8 @@
       }
 
       output.innerText = "📥 Fetching index.html from SteveAI...";
-
       const rawHTML = await fetch(sourceURL).then(res => res.text());
-      const encoded = btoa(unescape(encodeURIComponent(rawHTML))); // GitHub requires base64
+      const encoded = btoa(unescape(encodeURIComponent(rawHTML)));
 
       output.innerText = "📤 Getting GitHub user info...";
       const userRes = await fetch("https://api.github.com/user", {
@@ -78,12 +78,12 @@
       });
 
       if (!repoRes.ok) {
-        output.innerText = "❌ Repo creation failed: " + (await repoRes.text());
+        output.innerText = "❌ Repo creation failed:\n" + (await repoRes.text());
         return;
       }
 
       output.innerText = "🚀 Uploading index.html...";
-      await fetch(`https://api.github.com/repos/${user.login}/${repo}/contents/index.html`, {
+      const uploadRes = await fetch(`https://api.github.com/repos/${user.login}/${repo}/contents/index.html`, {
         method: "PUT",
         headers: {
           Authorization: `token ${token}`,
@@ -95,8 +95,13 @@
         })
       });
 
+      if (!uploadRes.ok) {
+        output.innerText = "❌ Upload failed:\n" + (await uploadRes.text());
+        return;
+      }
+
       output.innerText = "🌐 Enabling GitHub Pages...";
-      await fetch(`https://api.github.com/repos/${user.login}/${repo}/pages`, {
+      const pagesRes = await fetch(`https://api.github.com/repos/${user.login}/${repo}/pages`, {
         method: "POST",
         headers: {
           Authorization: `token ${token}`,
@@ -108,7 +113,9 @@
       });
 
       const siteURL = `https://${user.login}.github.io/${repo}/`;
-      output.innerHTML = `✅ Deployed: <a href="${siteURL}" target="_blank">${siteURL}</a>`;
+      output.innerHTML = pagesRes.ok
+        ? `✅ Deployed: <a href="${siteURL}" target="_blank">${siteURL}</a>`
+        : `⚠️ Uploaded, but GitHub Pages setup failed. Visit your repo: <a href="https://github.com/${user.login}/${repo}" target="_blank">${repo}</a>`;
     }
   </script>
 </body>
