@@ -40,12 +40,14 @@
 <body>
   <h1>🧠 Steve AI 1-Click Deploy</h1>
 
+  <!-- 🔐 Payment wall (only shows after 1 hour trial ends) -->
   <div id="accessGate" style="display:none;">
     <h2>⏳ Your 1-hour free trial has ended</h2>
     <p>Please purchase to unlock full access:</p>
-    <a href="https://your-buy-page.com" target="_blank">👉 Buy Now</a>
+    <a href="https://gumroad.com/l/steveai" target="_blank">👉 Buy Now</a>
   </div>
 
+  <!-- 🚀 Main deploy app -->
   <div id="mainApp" style="display:none;">
     <input id="token" type="password" placeholder="🔑 GitHub Token (repo scope)" /><br/>
     <input id="repo" placeholder="📦 Repo Name (e.g. steveai-clone)" /><br/>
@@ -54,105 +56,105 @@
   </div>
 
   <script>
-    const sourceURL = "https://raw.githubusercontent.com/saad-pie/SteveAI/main/index.html";
-
-    // ⏱️ TRIAL & PAYMENT LOGIC
-    const paid = new URLSearchParams(window.location.search).get("paid");
-    const accessGate = document.getElementById("accessGate");
-    const mainApp = document.getElementById("mainApp");
-    const oneHour = 60 * 60 * 1000;
-
-    if (paid === "true") {
-      mainApp.style.display = "block";
-    } else {
-      const trialStart = localStorage.getItem("steveai_trial_start");
+    window.onload = function () {
+      const sourceURL = "https://raw.githubusercontent.com/saad-pie/SteveAI/main/index.html";
+      const paid = new URLSearchParams(window.location.search).get("paid");
+      const accessGate = document.getElementById("accessGate");
+      const mainApp = document.getElementById("mainApp");
+      const oneHour = 24 * 1000;
       const now = Date.now();
 
-      if (!trialStart) {
-        localStorage.setItem("steveai_trial_start", now);
-        mainApp.style.display = "block";
-      } else if (now - parseInt(trialStart) < oneHour) {
+      if (paid === "true") {
         mainApp.style.display = "block";
       } else {
-        accessGate.style.display = "block";
-      }
-    }
+        const trialStart = localStorage.getItem("steveai_trial_start");
 
-    // 🚀 DEPLOY FUNCTION
-    async function deploy() {
-      const token = document.getElementById("token").value.trim();
-      const repo = document.getElementById("repo").value.trim();
-      const output = document.getElementById("output");
-
-      if (!token || !repo) {
-        output.innerText = "❌ Please fill in all fields.";
-        return;
+        if (!trialStart) {
+          localStorage.setItem("steveai_trial_start", now);
+          mainApp.style.display = "block";
+        } else if (now - parseInt(trialStart) < oneHour) {
+          mainApp.style.display = "block";
+        } else {
+          accessGate.style.display = "block";
+        }
       }
 
-      output.innerText = "📥 Fetching index.html from SteveAI...";
-      const rawHTML = await fetch(sourceURL).then(res => res.text());
-      const encoded = btoa(unescape(encodeURIComponent(rawHTML)));
+      // 🚀 Deploy function
+      window.deploy = async function () {
+        const token = document.getElementById("token").value.trim();
+        const repo = document.getElementById("repo").value.trim();
+        const output = document.getElementById("output");
 
-      output.innerText = "📤 Getting GitHub user info...";
-      const userRes = await fetch("https://api.github.com/user", {
-        headers: { Authorization: `token ${token}` }
-      });
-      const user = await userRes.json();
+        if (!token || !repo) {
+          output.innerText = "❌ Please fill in all fields.";
+          return;
+        }
 
-      output.innerText = "📦 Creating new repository...";
-      const repoRes = await fetch("https://api.github.com/user/repos", {
-        method: "POST",
-        headers: {
-          Authorization: `token ${token}`,
-          "Accept": "application/vnd.github+json"
-        },
-        body: JSON.stringify({
-          name: repo,
-          auto_init: true,
-          private: false
-        })
-      });
+        output.innerText = "📥 Fetching index.html from SteveAI...";
+        const rawHTML = await fetch(sourceURL).then(res => res.text());
+        const encoded = btoa(unescape(encodeURIComponent(rawHTML)));
 
-      if (!repoRes.ok) {
-        output.innerText = "❌ Repo creation failed:\n" + (await repoRes.text());
-        return;
-      }
+        output.innerText = "📤 Getting GitHub user info...";
+        const userRes = await fetch("https://api.github.com/user", {
+          headers: { Authorization: `token ${token}` }
+        });
+        const user = await userRes.json();
 
-      output.innerText = "🚀 Uploading index.html...";
-      const uploadRes = await fetch(`https://api.github.com/repos/${user.login}/${repo}/contents/index.html`, {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${token}`,
-          "Accept": "application/vnd.github+json"
-        },
-        body: JSON.stringify({
-          message: "Add Steve AI index.html",
-          content: encoded
-        })
-      });
+        output.innerText = "📦 Creating new repository...";
+        const repoRes = await fetch("https://api.github.com/user/repos", {
+          method: "POST",
+          headers: {
+            Authorization: `token ${token}`,
+            "Accept": "application/vnd.github+json"
+          },
+          body: JSON.stringify({
+            name: repo,
+            auto_init: true,
+            private: false
+          })
+        });
 
-      if (!uploadRes.ok) {
-        output.innerText = "❌ Upload failed:\n" + (await uploadRes.text());
-        return;
-      }
+        if (!repoRes.ok) {
+          output.innerText = "❌ Repo creation failed:\n" + (await repoRes.text());
+          return;
+        }
 
-      output.innerText = "🌐 Enabling GitHub Pages...";
-      const pagesRes = await fetch(`https://api.github.com/repos/${user.login}/${repo}/pages`, {
-        method: "POST",
-        headers: {
-          Authorization: `token ${token}`,
-          "Accept": "application/vnd.github+json"
-        },
-        body: JSON.stringify({
-          source: { branch: "main", path: "/" }
-        })
-      });
+        output.innerText = "🚀 Uploading index.html...";
+        const uploadRes = await fetch(`https://api.github.com/repos/${user.login}/${repo}/contents/index.html`, {
+          method: "PUT",
+          headers: {
+            Authorization: `token ${token}`,
+            "Accept": "application/vnd.github+json"
+          },
+          body: JSON.stringify({
+            message: "Add Steve AI index.html",
+            content: encoded
+          })
+        });
 
-      const siteURL = `https://${user.login}.github.io/${repo}/`;
-      output.innerHTML = pagesRes.ok
-        ? `✅ Deployed: <a href="${siteURL}" target="_blank">${siteURL}</a>`
-        : `⚠️ Uploaded, but GitHub Pages setup failed. Visit your repo: <a href="https://github.com/${user.login}/${repo}" target="_blank">${repo}</a>`;
-    }
+        if (!uploadRes.ok) {
+          output.innerText = "❌ Upload failed:\n" + (await uploadRes.text());
+          return;
+        }
+
+        output.innerText = "🌐 Enabling GitHub Pages...";
+        const pagesRes = await fetch(`https://api.github.com/repos/${user.login}/${repo}/pages`, {
+          method: "POST",
+          headers: {
+            Authorization: `token ${token}`,
+            "Accept": "application/vnd.github+json"
+          },
+          body: JSON.stringify({
+            source: { branch: "main", path: "/" }
+          })
+        });
+
+        const siteURL = `https://${user.login}.github.io/${repo}/`;
+        output.innerHTML = pagesRes.ok
+          ? `✅ Deployed: <a href="${siteURL}" target="_blank">${siteURL}</a>`
+          : `⚠️ Uploaded, but GitHub Pages setup failed. Visit your repo: <a href="https://github.com/${user.login}/${repo}" target="_blank">${repo}</a>`;
+      };
+    };
   </script>
 </body>
 </html>
