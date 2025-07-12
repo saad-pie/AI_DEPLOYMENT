@@ -31,18 +31,54 @@
       color: #33ffcc;
       white-space: pre-wrap;
     }
+    a {
+      color: #f97316;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <h1>🧠 Steve AI 1-Click Deploy</h1>
-  <input id="token" type="password" placeholder="🔑 GitHub Token (repo scope)" /><br/>
-  <input id="repo" placeholder="📦 Repo Name (e.g. steveai-clone)" /><br/>
-  <button onclick="deploy()">⚙️ Deploy</button>
-  <div class="output" id="output"></div>
+
+  <div id="accessGate" style="display:none;">
+    <h2>⏳ Your 1-hour free trial has ended</h2>
+    <p>Please purchase to unlock full access:</p>
+    <a href="https://your-buy-page.com" target="_blank">👉 Buy Now</a>
+  </div>
+
+  <div id="mainApp" style="display:none;">
+    <input id="token" type="password" placeholder="🔑 GitHub Token (repo scope)" /><br/>
+    <input id="repo" placeholder="📦 Repo Name (e.g. steveai-clone)" /><br/>
+    <button onclick="deploy()">⚙️ Deploy</button>
+    <div class="output" id="output"></div>
+  </div>
 
   <script>
     const sourceURL = "https://raw.githubusercontent.com/saad-pie/SteveAI/main/index.html";
 
+    // ⏱️ TRIAL & PAYMENT LOGIC
+    const paid = new URLSearchParams(window.location.search).get("paid");
+    const accessGate = document.getElementById("accessGate");
+    const mainApp = document.getElementById("mainApp");
+    const oneHour = 60 * 60 * 1000;
+
+    if (paid === "true") {
+      mainApp.style.display = "block";
+    } else {
+      const trialStart = localStorage.getItem("steveai_trial_start");
+      const now = Date.now();
+
+      if (!trialStart) {
+        localStorage.setItem("steveai_trial_start", now);
+        mainApp.style.display = "block";
+      } else if (now - parseInt(trialStart) < oneHour) {
+        mainApp.style.display = "block";
+      } else {
+        accessGate.style.display = "block";
+      }
+    }
+
+    // 🚀 DEPLOY FUNCTION
     async function deploy() {
       const token = document.getElementById("token").value.trim();
       const repo = document.getElementById("repo").value.trim();
