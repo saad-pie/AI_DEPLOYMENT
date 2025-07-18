@@ -40,7 +40,7 @@
 <body>
   <h1>🧠 Steve AI 1-Click Deploy</h1>
 
-  <!-- 🔐 Payment wall (only shows after 1 hour trial ends) -->
+  <!-- 🔐 Payment Gate -->
   <div id="accessGate" style="display:none;">
     <h2>⏳ Your 1-hour free trial has ended</h2>
     <p>Please purchase to unlock full access:</p>
@@ -58,25 +58,18 @@
   <script>
     window.onload = function () {
       const sourceURL = "https://raw.githubusercontent.com/saad-pie/SteveAI/main/index.html";
-      const paid = new URLSearchParams(window.location.search).get("paid");
       const accessGate = document.getElementById("accessGate");
       const mainApp = document.getElementById("mainApp");
-      const oneHour = 60 * 60 * 1000;
-      const now = Date.now();
 
-      if (paid === "true") {
+      // 🔓 Custom Access Unlock
+      const params = new URLSearchParams(window.location.search);
+      const demo = params.get("demo");
+      const pswd = params.get("pswd");
+
+      if (demo === "false" && pswd === "carrot") {
         mainApp.style.display = "block";
       } else {
-        const trialStart = localStorage.getItem("steveai_trial_start");
-
-        if (!trialStart) {
-          localStorage.setItem("steveai_trial_start", now);
-          mainApp.style.display = "block";
-        } else if (now - parseInt(trialStart) < oneHour) {
-          mainApp.style.display = "block";
-        } else {
-          accessGate.style.display = "block";
-        }
+        accessGate.style.display = "block";
       }
 
       // 🚀 Deploy function
