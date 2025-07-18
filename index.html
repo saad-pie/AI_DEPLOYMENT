@@ -1,153 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>🚀 Deploy Steve-AI</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>Steve AI - Deploy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      background: #0f0f0f;
-      color: #fff;
       font-family: sans-serif;
       padding: 2rem;
-      text-align: center;
+      background: #f0f0f0;
     }
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      width: 80%;
-      max-width: 500px;
-      border: none;
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .status {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      padding: 6px 12px;
       border-radius: 8px;
-    }
-    button {
-      background: #f97316;
+      font-family: monospace;
       color: white;
-      font-weight: bold;
-      cursor: pointer;
     }
-    .output {
-      margin-top: 2rem;
-      color: #33ffcc;
-      white-space: pre-wrap;
+    .status.full {
+      background: #4CAF50;
     }
-    a {
-      color: #f97316;
-      font-weight: bold;
+    .status.demo {
+      background: #FF9800;
     }
   </style>
 </head>
 <body>
-  <h1>🧠 Steve AI 1-Click Deploy</h1>
+  <div class="container">
+    <h1>🚀 Steve AI Deployment</h1>
+    <p>Welcome to the 1-click Steve AI deploy system.</p>
+    <p>This page will handle setup and configuration automatically.</p>
 
-  <!-- 🔐 Payment Gate -->
-  <div id="accessGate" style="display:none;">
-    <h2>⏳ Your 1-hour free trial has ended</h2>
-    <p>Please purchase to unlock full access:</p>
-    <a href="https://gumroad.com/l/steveai" target="_blank">👉 Buy Now</a>
-  </div>
+    <div id="output"></div>
 
-  <!-- 🚀 Main deploy app -->
-  <div id="mainApp" style="display:none;">
-    <input id="token" type="password" placeholder="🔑 GitHub Token (repo scope)" /><br/>
-    <input id="repo" placeholder="📦 Repo Name (e.g. steveai-clone)" /><br/>
-    <button onclick="deploy()">⚙️ Deploy</button>
-    <div class="output" id="output"></div>
+    <button onclick="deploySteveAI()">Deploy Now</button>
   </div>
 
   <script>
-    window.onload = function () {
-      const sourceURL = "https://raw.githubusercontent.com/saad-pie/SteveAI/main/index.html";
-      const accessGate = document.getElementById("accessGate");
-      const mainApp = document.getElementById("mainApp");
+    // --- PASSWORD UNLOCK SYSTEM ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const password = urlParams.get('pswd');
 
-      // 🔓 Custom Access Unlock
-      const params = new URLSearchParams(window.location.search);
-      const demo = params.get("demo");
-      const pswd = params.get("pswd");
-
-      if (demo === "false" && pswd === "carrot") {
-        mainApp.style.display = "block";
-      } else {
-        accessGate.style.display = "block";
+    if (password === 'carrot') {
+      localStorage.setItem('steveai_mode', 'full');
+      console.log('🔓 Full mode unlocked!');
+    } else if (password) {
+      localStorage.setItem('steveai_mode', 'demo');
+      console.log('🔐 Incorrect password. Demo mode.');
+    } else {
+      if (!localStorage.getItem('steveai_mode')) {
+        localStorage.setItem('steveai_mode', 'demo');
+        console.log('🔐 Default to demo mode.');
       }
+    }
 
-      // 🚀 Deploy function
-      window.deploy = async function () {
-        const token = document.getElementById("token").value.trim();
-        const repo = document.getElementById("repo").value.trim();
-        const output = document.getElementById("output");
+    // Clean URL by removing ?pswd=
+    if (password) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
 
-        if (!token || !repo) {
-          output.innerText = "❌ Please fill in all fields.";
-          return;
-        }
+    const mode = localStorage.getItem('steveai_mode') || 'demo';
 
-        output.innerText = "📥 Fetching index.html from SteveAI...";
-        const rawHTML = await fetch(sourceURL).then(res => res.text());
-        const encoded = btoa(unescape(encodeURIComponent(rawHTML)));
+    // Show status badge
+    document.addEventListener("DOMContentLoaded", () => {
+      const badge = document.createElement('div');
+      badge.className = `status ${mode}`;
+      badge.innerText = mode === 'full' ? '🧠 Full Mode' : '🧪 Demo Mode';
+      document.body.appendChild(badge);
+    });
 
-        output.innerText = "📤 Getting GitHub user info...";
-        const userRes = await fetch("https://api.github.com/user", {
-          headers: { Authorization: `token ${token}` }
-        });
-        const user = await userRes.json();
-
-        output.innerText = "📦 Creating new repository...";
-        const repoRes = await fetch("https://api.github.com/user/repos", {
-          method: "POST",
-          headers: {
-            Authorization: `token ${token}`,
-            "Accept": "application/vnd.github+json"
-          },
-          body: JSON.stringify({
-            name: repo,
-            auto_init: true,
-            private: false
-          })
-        });
-
-        if (!repoRes.ok) {
-          output.innerText = "❌ Repo creation failed:\n" + (await repoRes.text());
-          return;
-        }
-
-        output.innerText = "🚀 Uploading index.html...";
-        const uploadRes = await fetch(`https://api.github.com/repos/${user.login}/${repo}/contents/index.html`, {
-          method: "PUT",
-          headers: {
-            Authorization: `token ${token}`,
-            "Accept": "application/vnd.github+json"
-          },
-          body: JSON.stringify({
-            message: "Add Steve AI index.html",
-            content: encoded
-          })
-        });
-
-        if (!uploadRes.ok) {
-          output.innerText = "❌ Upload failed:\n" + (await uploadRes.text());
-          return;
-        }
-
-        output.innerText = "🌐 Enabling GitHub Pages...";
-        const pagesRes = await fetch(`https://api.github.com/repos/${user.login}/${repo}/pages`, {
-          method: "POST",
-          headers: {
-            Authorization: `token ${token}`,
-            "Accept": "application/vnd.github+json"
-          },
-          body: JSON.stringify({
-            source: { branch: "main", path: "/" }
-          })
-        });
-
-        const siteURL = `https://${user.login}.github.io/${repo}/`;
-        output.innerHTML = pagesRes.ok
-          ? `✅ Deployed: <a href="${siteURL}" target="_blank">${siteURL}</a>`
-          : `⚠️ Uploaded, but GitHub Pages setup failed. Visit your repo: <a href="https://github.com/${user.login}/${repo}" target="_blank">${repo}</a>`;
-      };
-    };
+    // --- Example deploy function ---
+    function deploySteveAI() {
+      const output = document.getElementById("output");
+      if (mode === "full") {
+        output.innerHTML = "✅ Deploying Steve AI in FULL mode...";
+        // TODO: Trigger full deploy logic here
+      } else {
+        output.innerHTML = "⚠️ Trial expired. Buy full version to deploy.";
+        // Optional: redirect to purchase page
+      }
+    }
   </script>
 </body>
 </html>
